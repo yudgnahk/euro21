@@ -11,7 +11,7 @@ on:
       - develop
 
 jobs:
-  crawl_data_then_test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
