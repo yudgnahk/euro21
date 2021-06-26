@@ -3,8 +3,8 @@
 prepare:
 	@go mod download
 
-table:
-	@go run main.go table
-
 build:
 	@go build -o euro21
+
+run:
+	@go run main.go

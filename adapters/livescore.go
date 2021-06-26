@@ -10,8 +10,23 @@ import (
 )
 
 const (
-	Host      = "https://prod-public-api.livescore.com/v1/api/react"
-	TablePath = "leagueTable/soccer/euro-2020"
+	GroupA        = "group-a"
+	GroupB        = "group-b"
+	GroupC        = "group-c"
+	GroupD        = "group-d"
+	GroupE        = "group-e"
+	GroupF        = "group-f"
+	RoundOf16     = "round-of-16"
+	QuarterFinals = "quarter-finals"
+	SemiFinals    = "semi-finals"
+	Final         = "final"
+)
+
+const (
+	Host        = "https://prod-public-api.livescore.com/v1/api/react"
+	TablePath   = "leagueTable/soccer/euro-2020"
+	FixturePath = "category/soccer/euro-2020/7.00"
+	StagePath   = "stage/soccer/euro-2020/%v/7.00"
 )
 
 func newGetRequest(url string) (*http.Request, error) {
@@ -52,6 +67,16 @@ func GetTables() (*dtos.TableData, error) {
 	setHeaders(request)
 
 	var response dtos.TableData
+
+	err := execute(request, &response)
+	return &response, err
+}
+
+func GetStage(stageName string) (*dtos.StageData, error) {
+	request, _ := newGetRequest(fmt.Sprintf("%v/%v", Host, fmt.Sprintf(StagePath, stageName)))
+	setHeaders(request)
+
+	var response dtos.StageData
 
 	err := execute(request, &response)
 	return &response, err

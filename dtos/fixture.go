@@ -1,6 +1,6 @@
 package dtos
 
-type Fixtures struct {
+type FixtureData struct {
 	Stages []struct {
 		Events []struct {
 			MatchID string `json:"Eid"`

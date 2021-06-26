@@ -86,11 +86,19 @@ func renderRow(s []string, l []int, color constants.Color) {
 
 func renderRows(data TableData, colLens []int) {
 	for i := range data.Data {
-		renderRow(data.Data[i], colLens, data.Color[i])
+		renderRow(data.Data[i], colLens, getColor(data.Color, i))
 		if i != len(data.Data)-1 {
 			renderBorder(Normal, colLens)
 		}
 	}
+}
+
+func getColor(colors []constants.Color, index int) constants.Color {
+	if len(colors) == 0 {
+		return constants.ColorWhite
+	}
+
+	return colors[index]
 }
 
 func renderBorder(horType HorizontalType, colLens []int) {

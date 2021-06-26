@@ -1,6 +1,8 @@
 package stringutil
 
 import (
+	"strconv"
+
 	emoji "github.com/tmdvs/Go-Emoji-Utils"
 )
 
@@ -31,4 +33,13 @@ func getLenFromSliceIndex(indexSlice [][]int) int {
 	}
 
 	return res
+}
+
+func ToInt(s string) int {
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return int(n)
 }
