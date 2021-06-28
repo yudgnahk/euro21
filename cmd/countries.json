@@ -1,0 +1,98 @@
+[
+  {
+    "name": "Austria",
+    "code": "AT"
+  },
+  {
+    "name": "Belgium",
+    "code": "BE"
+  },
+  {
+    "name": "Switzerland",
+    "code": "CH"
+  },
+  {
+    "name": "Czech Republic",
+    "code": "CZ"
+  },
+  {
+    "name": "Germany",
+    "code": "DE"
+  },
+  {
+    "name": "Denmark",
+    "code": "DK"
+  },
+  {
+    "name": "Spain",
+    "code": "ES"
+  },
+  {
+    "name": "Finland",
+    "code": "FI"
+  },
+  {
+    "name": "France",
+    "code": "FR"
+  },
+  {
+    "name": "England",
+    "code": "GB-ENG"
+  },
+  {
+    "name": "Croatia",
+    "code": "HR"
+  },
+  {
+    "name": "Hungary",
+    "code": "HU"
+  },
+  {
+    "name": "Italy",
+    "code": "IT"
+  },
+  {
+    "name": "North Macedonia",
+    "code": "MK"
+  },
+  {
+    "name": "Netherlands",
+    "code": "NL"
+  },
+  {
+    "name": "Poland",
+    "code": "PL"
+  },
+  {
+    "name": "Portugal",
+    "code": "PT"
+  },
+  {
+    "name": "Russia",
+    "code": "RU"
+  },
+  {
+    "name": "Sweden",
+    "code": "SE"
+  },
+  {
+    "name": "Slovakia",
+    "code": "SK"
+  },
+  {
+    "name": "Turkey",
+    "code": "TR"
+  },
+  {
+    "name": "Ukraine",
+    "code": "UA"
+  },
+  {
+    "name": "Scotland",
+    "code": "GB-SCT"
+  },
+  {
+    "name": "Wales",
+    "code": "GB-WLS"
+  }
+]

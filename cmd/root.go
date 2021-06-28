@@ -3,9 +3,10 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
+
+	_ "embed"
 
 	"github.com/manifoldco/promptui"
 	"github.com/sirupsen/logrus"
@@ -14,6 +15,9 @@ import (
 )
 
 var countriesMap = make(map[string]string)
+
+//go:embed countries.json
+var countriesData string
 
 type menu struct {
 	Choice string
@@ -79,16 +83,9 @@ func Execute() {
 
 func init() {
 	countries := make([]dtos.Country, 0)
-	bytes, err := ioutil.ReadFile("./data/countries.json")
-	if err != nil {
-		fmt.Println("read countries data got error: ", err)
-	}
-
-	_ = json.Unmarshal(bytes, &countries)
+	_ = json.Unmarshal([]byte(countriesData), &countries)
 
 	for i := range countries {
 		countriesMap[countries[i].Name] = countries[i].Code
 	}
-
-	fmt.Println("finish init countries data")
 }
