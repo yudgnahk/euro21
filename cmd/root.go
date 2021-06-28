@@ -79,7 +79,11 @@ func Execute() {
 
 func init() {
 	countries := make([]dtos.Country, 0)
-	bytes, _ := ioutil.ReadFile("./data/countries.json")
+	bytes, err := ioutil.ReadFile("./data/countries.json")
+	if err != nil {
+		fmt.Println("read countries data got error: ", err)
+	}
+
 	_ = json.Unmarshal(bytes, &countries)
 
 	for i := range countries {
