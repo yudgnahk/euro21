@@ -85,4 +85,6 @@ func init() {
 	for i := range countries {
 		countriesMap[countries[i].Name] = countries[i].Code
 	}
+
+	fmt.Println("finish init countries data")
 }
