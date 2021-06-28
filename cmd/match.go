@@ -138,6 +138,10 @@ func getDisplayMatch(e dtos.Event) string {
 
 func getTeamName(t dtos.Team) string {
 	if t.Tbd == 0 {
+		flag := emojiflags.GetFlag(countriesMap[t.Nm])
+		if len(flag) == 0 {
+			fmt.Println("error get flag: ", countriesMap[t.Nm])
+		}
 		return fmt.Sprintf("%v %v", emojiflags.GetFlag(countriesMap[t.Nm]), t.Nm)
 	} else {
 		return t.Nm
