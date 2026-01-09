@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -8,64 +9,30 @@ import (
 	"time"
 
 	"github.com/manifoldco/promptui"
-	"github.com/yudgnahk/euro21/adapters"
-	"github.com/yudgnahk/euro21/constants"
+	"github.com/sirupsen/logrus"
 	"github.com/yudgnahk/euro21/dtos"
 	"github.com/yudgnahk/euro21/tablewriter"
 	"github.com/yudgnahk/euro21/utils/sliceutil"
-	"github.com/yudgnahk/euro21/utils/stringutil"
 	emojiflags "github.com/yudgnahk/go-emoji-flags"
 )
 
-type stageSelection struct {
+type stageFilter struct {
 	Display string
-	Name    string
+	Filter  string
 }
 
-var stageSelections = []stageSelection{
-	{
-		Display: constants.StageGroupA,
-		Name:    adapters.GroupA,
-	},
-	{
-		Display: constants.StageGroupB,
-		Name:    adapters.GroupB,
-	},
-	{
-		Display: constants.StageGroupC,
-		Name:    adapters.GroupC,
-	},
-	{
-		Display: constants.StageGroupD,
-		Name:    adapters.GroupD,
-	},
-	{
-		Display: constants.StageGroupE,
-		Name:    adapters.GroupE,
-	},
-	{
-		Display: constants.StageGroupF,
-		Name:    adapters.GroupF,
-	},
-	{
-		Display: constants.RoundOf16,
-		Name:    adapters.RoundOf16,
-	},
-	{
-		Display: constants.QuarterFinals,
-		Name:    adapters.QuarterFinals,
-	},
-	{
-		Display: constants.SemiFinals,
-		Name:    adapters.SemiFinals,
-	},
-	{
-		Display: constants.Final,
-		Name:    adapters.Final,
-	},
+var stageFilters = []stageFilter{
+	{Display: "All Matches", Filter: ""},
+	{Display: "Round of 16", Filter: "Round of 16"},
+	{Display: "Quarter-finals", Filter: "Quarter"},
+	{Display: "Semi-finals", Filter: "Semi"},
+	{Display: "Final", Filter: "Final"},
 }
 
 func GetMatch() {
+	ctx := context.Background()
+
+	// Show stage selection prompt
 	templates := &promptui.SelectTemplates{
 		Label:    "{{ . }}?",
 		Active:   "⚽️ {{ .Display | cyan }}",
@@ -74,72 +41,116 @@ func GetMatch() {
 	}
 
 	searcher := func(input string, index int) bool {
-		stage := stageSelections[index]
-
-		return strings.Contains(stage.Display, input)
+		stage := stageFilters[index]
+		return strings.Contains(strings.ToLower(stage.Display), strings.ToLower(input))
 	}
 
 	prompt := promptui.Select{
 		Label:     "Select round",
-		Items:     stageSelections,
+		Items:     stageFilters,
 		Templates: templates,
 		Size:      10,
 		Searcher:  searcher,
 	}
 
 	i, _, err := prompt.Run()
-
 	if err != nil {
 		fmt.Printf("Prompt failed %v\n", err)
 		return
 	}
 
-	data, _ := adapters.GetStage(stageSelections[i].Name)
+	selectedFilter := stageFilters[i]
 
-	stageData := data.Stages[0]
-	matches := stageData.Events
+	// Fetch tournament events from SofaScore API
+	response, err := sofaClient.GetTournamentEvents(ctx, cfg.Tournament.ID, cfg.Tournament.SeasonID)
+	if err != nil {
+		logrus.Errorf("Failed to fetch tournament events: %v", err)
+		fmt.Printf("Error: Failed to fetch tournament events. Please check your internet connection.\n")
+		return
+	}
 
-	sort.Slice(matches, func(i, j int) bool {
-		return matches[i].Esd < matches[j].Esd
+	if len(response.Events) == 0 {
+		fmt.Println("No events found for this tournament.")
+		return
+	}
+
+	// Filter events based on selection
+	var filteredEvents []dtos.SofaEvent
+	if selectedFilter.Filter == "" {
+		filteredEvents = response.Events
+	} else {
+		for _, event := range response.Events {
+			if event.RoundInfo.Name != "" && strings.Contains(event.RoundInfo.Name, selectedFilter.Filter) {
+				filteredEvents = append(filteredEvents, event)
+			}
+		}
+	}
+
+	if len(filteredEvents) == 0 {
+		fmt.Printf("No matches found for %s.\n", selectedFilter.Display)
+		return
+	}
+
+	// Sort events by start time
+	sort.Slice(filteredEvents, func(i, j int) bool {
+		return filteredEvents[i].StartTimestamp < filteredEvents[j].StartTimestamp
 	})
 
+	// Render table
 	table := tablewriter.NewTable(os.Stdout)
-	table.SetHeader([]string{"Time", "Match"})
+	table.SetHeader([]string{"Time", "Match", "Status"})
 
-	for _, m := range matches {
-		table.Append(sliceutil.ToStringSlice(getTime(m.Esd).Format(time.RFC1123), getDisplayMatch(m)))
+	for _, event := range filteredEvents {
+		// Format time
+		eventTime := time.Unix(event.StartTimestamp, 0)
+		timeStr := eventTime.Format("Mon Jan 02, 15:04")
+
+		// Format match
+		matchStr := getDisplayMatch(event)
+
+		// Get status
+		statusStr := getEventStatus(event)
+
+		if err := table.Append(sliceutil.ToStringSlice(timeStr, matchStr, statusStr)); err != nil {
+			logrus.Warnf("Failed to append table row: %v", err)
+		}
 	}
 
 	table.Render()
 }
 
-func getTime(z int64) time.Time {
-	var (
-		s      = fmt.Sprintf("%v", z)
-		year   = stringutil.ToInt(s[0:4])
-		month  = stringutil.ToInt(s[4:6])
-		date   = stringutil.ToInt(s[6:8])
-		hour   = stringutil.ToInt(s[8:10])
-		minute = stringutil.ToInt(s[10:12])
-		second = stringutil.ToInt(s[12:])
-	)
+func getDisplayMatch(event dtos.SofaEvent) string {
+	homeTeam := formatTeamName(event.HomeTeam)
+	awayTeam := formatTeamName(event.AwayTeam)
 
-	t := time.Date(year, time.Month(month), date, hour, minute, second, 0, time.Local)
-	return t
-}
-
-func getDisplayMatch(e dtos.Event) string {
-	if len(e.Tr1) > 0 {
-		return fmt.Sprintf("%v %v - %v %v", getTeamName(e.T1[0]), e.Tr1, e.Tr2, getTeamName(e.T2[0]))
+	// Check if match has been played (status is finished or in progress)
+	if event.Status.Type == "finished" || event.Status.Type == "inprogress" {
+		return fmt.Sprintf("%s %d - %d %s", homeTeam, event.HomeScore.Current, event.AwayScore.Current, awayTeam)
 	} else {
-		return fmt.Sprintf("%v ? - ? %v", getTeamName(e.T1[0]), getTeamName(e.T2[0]))
+		return fmt.Sprintf("%s vs %s", homeTeam, awayTeam)
 	}
 }
 
-func getTeamName(t dtos.Team) string {
-	if t.Tbd == 0 {
-		return fmt.Sprintf("%v %v", emojiflags.GetFlag(countriesMap[t.Nm]), t.Nm)
-	} else {
-		return t.Nm
+func formatTeamName(team dtos.SofaTeam) string {
+	if countryCode, ok := countriesMap[team.Name]; ok {
+		return fmt.Sprintf("%v %v", emojiflags.GetFlag(countryCode), team.Name)
+	}
+	return team.Name
+}
+
+func getEventStatus(event dtos.SofaEvent) string {
+	switch event.Status.Type {
+	case "finished":
+		return "FT"
+	case "inprogress":
+		return "LIVE"
+	case "notstarted":
+		return "Scheduled"
+	case "postponed":
+		return "Postponed"
+	case "canceled":
+		return "Cancelled"
+	default:
+		return event.Status.Description
 	}
 }

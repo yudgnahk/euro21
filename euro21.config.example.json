@@ -1,0 +1,18 @@
+{
+  "proxy": {
+    "enabled": false,
+    "type": "socks5",
+    "address": "localhost:9050",
+    "tor_control_addr": "localhost:9051"
+  },
+  "cache": {
+    "enabled": true,
+    "cache_dir": "~/.cache/euro21",
+    "ttl": 300
+  },
+  "tournament": {
+    "id": 1,
+    "season_id": 26542,
+    "name": "UEFA Euro 2021"
+  }
+}
