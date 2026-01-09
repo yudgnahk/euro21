@@ -7,7 +7,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.10.2
 	github.com/tmdvs/Go-Emoji-Utils v1.1.0
-	github.com/yudgnahk/go-emoji-flags v0.0.5
+	github.com/yudgnahk/go-emoji-flags v0.0.9
 	golang.org/x/net v0.48.0
 )
 

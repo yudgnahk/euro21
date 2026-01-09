@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/yudgnahk/euro21/constants"
 	"github.com/yudgnahk/euro21/dtos"
-	"github.com/yudgnahk/euro21/tablewriter"
-	"github.com/yudgnahk/euro21/utils/sliceutil"
+	"github.com/yudgnahk/euro21/tui"
 	emojiflags "github.com/yudgnahk/go-emoji-flags"
 )
 
@@ -66,9 +66,9 @@ func GetTable() {
 		bestThirdPlaces[thirdPlaceTeams[i].Team.ID] = true
 	}
 
-	// Render multi-table layout
-	multiTables := tablewriter.NewMultiTables(os.Stdout)
-	multiTables.SetHeaders([]string{"Name", "P", "W", "D", "L", "F", "A", "GD"})
+	// Create renderer and multi-table using new TUI package
+	renderer := tui.NewRenderer(os.Stdout)
+	multiTable := tui.NewMultiTable()
 
 	// Sort standings by name (Group A, Group B, etc.)
 	sort.Slice(response.Standings, func(i, j int) bool {
@@ -76,46 +76,73 @@ func GetTable() {
 	})
 
 	for _, standing := range response.Standings {
-		multiTables.AppendSubHeaders(standing.Name)
+		// Create table for this group
+		table := tui.NewTable().
+			SetHeaders("Name", "P", "W", "D", "L", "F", "A", "GD").
+			// Set right alignment for all number columns (columns 1-7)
+			SetAlignment(1, tui.AlignRight). // P
+			SetAlignment(2, tui.AlignRight). // W
+			SetAlignment(3, tui.AlignRight). // D
+			SetAlignment(4, tui.AlignRight). // L
+			SetAlignment(5, tui.AlignRight). // F
+			SetAlignment(6, tui.AlignRight). // A
+			SetAlignment(7, tui.AlignRight)  // GD
 
-		tableDetail := tablewriter.TableData{}
 		for i, row := range standing.Rows {
 			// Get team name with flag emoji
 			teamName := row.Team.Name
 			if countryCode, ok := countriesMap[teamName]; ok {
-				flagAndName := fmt.Sprintf("%v %v", emojiflags.GetFlag(countryCode), teamName)
+				flag := emojiflags.GetFlag(countryCode)
+				// emojiflags library adds trailing space for some flags but not others
+				// Trim it and add consistent spacing
+				flag = strings.TrimSpace(flag)
+				flagAndName := fmt.Sprintf("%v  %v", flag, teamName)
 				teamName = flagAndName
 			}
 
 			// Calculate goal difference
 			gd := row.ScoresFor - row.ScoresAgainst
 
-			// Append row data
-			tableDetail.Data = append(tableDetail.Data,
-				sliceutil.ToStringSlice(teamName, row.Points, row.Wins, row.Draws, row.Losses, row.ScoresFor, row.ScoresAgainst, gd))
-
 			// Determine row color based on position
+			var color tui.Color
 			switch i {
 			case 0, 1:
 				// First and second place qualify (green)
-				tableDetail.Color = append(tableDetail.Color, priorityPlaces)
+				color = tui.NewColor(priorityPlaces)
 			case 2:
 				// Third place - check if they're in best 4
 				if bestThirdPlaces[row.Team.ID] {
-					tableDetail.Color = append(tableDetail.Color, bestThirdPlace)
+					color = tui.NewColor(bestThirdPlace)
 				} else {
-					tableDetail.Color = append(tableDetail.Color, failedPlace)
+					color = tui.NewColor(failedPlace)
 				}
 			default:
 				// Fourth place and below (white)
-				tableDetail.Color = append(tableDetail.Color, failedPlace)
+				color = tui.NewColor(failedPlace)
 			}
+
+			// Add row with color
+			table.AddRowWithColor(color,
+				teamName,
+				fmt.Sprint(row.Points),
+				fmt.Sprint(row.Wins),
+				fmt.Sprint(row.Draws),
+				fmt.Sprint(row.Losses),
+				fmt.Sprint(row.ScoresFor),
+				fmt.Sprint(row.ScoresAgainst),
+				fmt.Sprint(gd),
+			)
 		}
 
-		if err := multiTables.AppendTable(tableDetail); err != nil {
-			logrus.Warnf("Failed to append table: %v", err)
-		}
+		// Add section to multi-table
+		multiTable.AddSection(standing.Name, table)
 	}
 
-	multiTables.Render()
+	// Normalize widths across all tables to make them the same size
+	multiTable.NormalizeWidths()
+
+	// Render the multi-table
+	if err := renderer.Render(ctx, multiTable); err != nil {
+		logrus.Errorf("Failed to render table: %v", err)
+	}
 }

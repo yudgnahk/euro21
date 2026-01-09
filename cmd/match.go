@@ -11,8 +11,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/sirupsen/logrus"
 	"github.com/yudgnahk/euro21/dtos"
-	"github.com/yudgnahk/euro21/tablewriter"
-	"github.com/yudgnahk/euro21/utils/sliceutil"
+	"github.com/yudgnahk/euro21/tui"
 	emojiflags "github.com/yudgnahk/go-emoji-flags"
 )
 
@@ -23,6 +22,7 @@ type stageFilter struct {
 
 var stageFilters = []stageFilter{
 	{Display: "All Matches", Filter: ""},
+	{Display: "Knockout Bracket (Tree)", Filter: "bracket"},
 	{Display: "Round of 16", Filter: "Round of 16"},
 	{Display: "Quarter-finals", Filter: "Quarter"},
 	{Display: "Semi-finals", Filter: "Semi"},
@@ -78,6 +78,16 @@ func GetMatch() {
 	var filteredEvents []dtos.SofaEvent
 	if selectedFilter.Filter == "" {
 		filteredEvents = response.Events
+	} else if selectedFilter.Filter == "bracket" {
+		// For bracket view, get all knockout matches
+		for _, event := range response.Events {
+			if event.RoundInfo.Name != "" && (strings.Contains(event.RoundInfo.Name, "Round of 16") ||
+				strings.Contains(event.RoundInfo.Name, "Quarter") ||
+				strings.Contains(event.RoundInfo.Name, "Semi") ||
+				strings.Contains(event.RoundInfo.Name, "Final")) {
+				filteredEvents = append(filteredEvents, event)
+			}
+		}
 	} else {
 		for _, event := range response.Events {
 			if event.RoundInfo.Name != "" && strings.Contains(event.RoundInfo.Name, selectedFilter.Filter) {
@@ -96,11 +106,54 @@ func GetMatch() {
 		return filteredEvents[i].StartTimestamp < filteredEvents[j].StartTimestamp
 	})
 
-	// Render table
-	table := tablewriter.NewTable(os.Stdout)
-	table.SetHeader([]string{"Time", "Match", "Status"})
+	// Check if bracket view was selected
+	if selectedFilter.Filter == "bracket" {
+		renderBracketView(ctx, filteredEvents)
+		return
+	}
 
-	for _, event := range filteredEvents {
+	// Render table view for other options
+	renderTableView(ctx, filteredEvents)
+}
+
+// renderBracketView renders matches in a bracket/tree format
+func renderBracketView(ctx context.Context, events []dtos.SofaEvent) {
+	// Convert events to matches
+	matches := make([]tui.Match, 0, len(events))
+	for _, event := range events {
+		match := tui.Match{
+			ID:        event.ID,
+			HomeTeam:  formatTeamName(event.HomeTeam),
+			AwayTeam:  formatTeamName(event.AwayTeam),
+			HomeScore: event.HomeScore.Current,
+			AwayScore: event.AwayScore.Current,
+			Status:    getEventStatus(event),
+			Round:     normalizeRoundName(event.RoundInfo.Name),
+			StartTime: time.Unix(event.StartTimestamp, 0),
+		}
+		matches = append(matches, match)
+	}
+
+	// Create and render bracket tree
+	bracket := tui.NewBracketTree().SetCompact(true)
+	if err := bracket.BuildFromMatches(matches); err != nil {
+		logrus.Errorf("Failed to build bracket: %v", err)
+		return
+	}
+
+	renderer := tui.NewRenderer(os.Stdout)
+	if err := renderer.Render(ctx, bracket); err != nil {
+		logrus.Errorf("Failed to render bracket: %v", err)
+	}
+}
+
+// renderTableView renders matches in a table format
+func renderTableView(ctx context.Context, events []dtos.SofaEvent) {
+	// Render table
+	table := tui.NewTable()
+	table.SetHeaders("Time", "Match", "Status")
+
+	for _, event := range events {
 		// Format time
 		eventTime := time.Unix(event.StartTimestamp, 0)
 		timeStr := eventTime.Format("Mon Jan 02, 15:04")
@@ -111,12 +164,30 @@ func GetMatch() {
 		// Get status
 		statusStr := getEventStatus(event)
 
-		if err := table.Append(sliceutil.ToStringSlice(timeStr, matchStr, statusStr)); err != nil {
-			logrus.Warnf("Failed to append table row: %v", err)
-		}
+		table.AddRow(timeStr, matchStr, statusStr)
 	}
 
-	table.Render()
+	renderer := tui.NewRenderer(os.Stdout)
+	if err := renderer.Render(ctx, table); err != nil {
+		logrus.Errorf("Failed to render table: %v", err)
+	}
+}
+
+// normalizeRoundName normalizes round names for consistent grouping
+func normalizeRoundName(name string) string {
+	if strings.Contains(name, "Round of 16") {
+		return "Round of 16"
+	}
+	if strings.Contains(name, "Quarter") {
+		return "Quarter-finals"
+	}
+	if strings.Contains(name, "Semi") {
+		return "Semi-finals"
+	}
+	if strings.Contains(name, "Final") && !strings.Contains(name, "Semi") {
+		return "Final"
+	}
+	return name
 }
 
 func getDisplayMatch(event dtos.SofaEvent) string {

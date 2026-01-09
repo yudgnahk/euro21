@@ -30,8 +30,8 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/tmdvs/Go-Emoji-Utils v1.1.0 h1:gtPix7HZPrd49+MNDcuRLvv4xVNxCE5wgjqyuvmbyYg=
 github.com/tmdvs/Go-Emoji-Utils v1.1.0/go.mod h1:J82i2WeGn+Kz+T3s5v9+i/OJlvevIVfGZ6qXgqiNWBc=
-github.com/yudgnahk/go-emoji-flags v0.0.5 h1:fG5wlFbrUJC9HXlorL9TFjZR+92dro/U7XSyewsG81A=
-github.com/yudgnahk/go-emoji-flags v0.0.5/go.mod h1:MXTLBRY+Jg6M8z6llm+0IPumaC0y3Cm78cw5v8wOkVs=
+github.com/yudgnahk/go-emoji-flags v0.0.9 h1:FJrX+9oUX8tJVM9vT5jP2fPb6wwCMbmdL2SFHrUUQ7w=
+github.com/yudgnahk/go-emoji-flags v0.0.9/go.mod h1:lSgrmQQmEfIXcTReY/RzZJ8RE9Ab3PXmcdYRA6B8e9s=
 go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
 golang.org/x/net v0.48.0 h1:zyQRTTrjc33Lhh0fBgT/H3oZq9WuvRR5gPC70xpDiQU=
 golang.org/x/net v0.48.0/go.mod h1:+ndRgGjkh8FGtu1w1FGbEC31if4VrNVMuKTgcAAnQRY=
