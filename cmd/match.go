@@ -116,30 +116,10 @@ func GetMatch() {
 	renderTableView(ctx, filteredEvents)
 }
 
-// renderBracketView renders matches in a bracket/tree format
+// renderBracketView renders matches in a visual bracket format
 func renderBracketView(ctx context.Context, events []dtos.SofaEvent) {
-	// Convert events to matches
-	matches := make([]tui.Match, 0, len(events))
-	for _, event := range events {
-		match := tui.Match{
-			ID:        event.ID,
-			HomeTeam:  formatTeamName(event.HomeTeam),
-			AwayTeam:  formatTeamName(event.AwayTeam),
-			HomeScore: event.HomeScore.Current,
-			AwayScore: event.AwayScore.Current,
-			Status:    getEventStatus(event),
-			Round:     normalizeRoundName(event.RoundInfo.Name),
-			StartTime: time.Unix(event.StartTimestamp, 0),
-		}
-		matches = append(matches, match)
-	}
-
-	// Create and render bracket tree
-	bracket := tui.NewBracketTree().SetCompact(true)
-	if err := bracket.BuildFromMatches(matches); err != nil {
-		logrus.Errorf("Failed to build bracket: %v", err)
-		return
-	}
+	// Create and render the visual Euro 2021 bracket
+	bracket := tui.NewVisualBracket().BuildEuro2021()
 
 	renderer := tui.NewRenderer(os.Stdout)
 	if err := renderer.Render(ctx, bracket); err != nil {
